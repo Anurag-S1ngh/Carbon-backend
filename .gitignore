@@ -1,0 +1,48 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Environment variables
+.env*
+!.env.example
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS-generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+
+# Compiled binary files from 'services'
+/auth
+/deploy
+/request
+/upload
+
+# Build output
+/build/
+/dist/
+
+# SQLc generated code
+/pkg/db/generated/
