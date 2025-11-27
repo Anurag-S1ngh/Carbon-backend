@@ -7,18 +7,26 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type JWTConfig struct {
+type JwtConfig struct {
 	secret string
 	logger *slog.Logger
 }
 
-func (j *JWTConfig) GeneratToken(userIDString string, expiresInHour uint8) (string, error) {
+func NewJwtConfig(secret string, logger *slog.Logger) *JwtConfig {
+	return &JwtConfig{
+		secret: secret,
+		logger: logger,
+	}
+}
+
+func (j *JwtConfig) GenerateJwt(userIDString string, expiresInHour uint) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userID": userIDString,
-		"exp":    time.Now().Add(time.Hour * time.Duration(expiresInHour)),
+		"iat":    time.Now().Unix(),
+		"exp":    time.Now().Add(time.Hour * time.Duration(expiresInHour)).Unix(),
 	})
 
-	tokenString, err := token.SignedString(j.secret)
+	tokenString, err := token.SignedString([]byte(j.secret))
 	if err != nil {
 		j.logger.Error("error while signing token", "error", err)
 		return "", err
@@ -27,9 +35,9 @@ func (j *JWTConfig) GeneratToken(userIDString string, expiresInHour uint8) (stri
 	return tokenString, nil
 }
 
-func (j *JWTConfig) VerifyToken(tokenString string) (string, error) {
+func (j *JwtConfig) VerifyToken(tokenString string) (string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-		return j.secret, nil
+		return []byte(j.secret), nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
 	if err != nil {
 		j.logger.Error("error while verifying token", "error", err)

@@ -6,7 +6,5 @@ INSERT INTO users (
 RETURNING *;
 
 -- name: GetUserByEmail :one
-SELECT email, profile_image_url
-  FROM users
+SELECT * FROM users
   WHERE email = $1 AND deleted_at IS NULL;
-
