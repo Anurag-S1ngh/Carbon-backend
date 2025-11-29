@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/markbates/goth/gothic"
 )
 
 type AuthService struct {
@@ -53,9 +54,6 @@ func NewAuthService(dbQueries *db.Queries,
 func (s *AuthService) VerifyEmail(userEmail string) error {
 	otpExpiryInSeconds, _ := strconv.Atoi(s.otpExpirySeconds)
 	otpCode := otp.GenerateOTP()
-
-	// FIXME: remove this in production
-	s.logger.Debug("OTP", "otp", otpCode)
 
 	key := fmt.Sprintf("otp:%s", userEmail)
 	err := s.redisConfig.SetEx(key, otpCode, uint(otpExpiryInSeconds))
@@ -141,8 +139,6 @@ func (s *AuthService) VerifyOTP(c *gin.Context, userEmail, userOTP string) error
 func (s *AuthService) RefreshAccessToken(c *gin.Context, refreshToken string) error {
 	refreshTokenHash := token.GenerateHash(refreshToken)
 
-	// FIXME: remove this in prod
-	s.logger.Debug("refresh token", "debug", "flag -1")
 	originalRefreshToken, err := s.dbQueries.GetRefreshTokenByToken(c, refreshTokenHash)
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -155,18 +151,105 @@ func (s *AuthService) RefreshAccessToken(c *gin.Context, refreshToken string) er
 	if time.Now().After(originalRefreshToken.ExpiresAt.Time) {
 		return errors.New("sign in again")
 	}
-	// FIXME: remove this in prod
-	s.logger.Debug("refresh token", "debug", "flag 0")
 
 	accessTokenExpiresInHour, _ := strconv.Atoi(s.accessTokenExpiresHours)
 	accessToken, err := s.jwtConfig.GenerateJwt(originalRefreshToken.UserID.String(), uint(accessTokenExpiresInHour))
 	if err != nil {
 		return err
 	}
-	// FIXME: remove this in prod
-	s.logger.Debug("refresh token", "debug", "flag 1")
 
 	c.SetCookie("carbon-access-token", accessToken, accessTokenExpiresInHour*3600, "/", "", false, true)
+
+	return nil
+}
+
+func (s *AuthService) OAuthProvider(c *gin.Context) {
+	provider := c.Param("provider")
+	q := c.Request.URL.Query()
+	q.Add("provider", provider)
+	c.Request.URL.RawQuery = q.Encode()
+
+	gothic.BeginAuthHandler(c.Writer, c.Request)
+}
+
+func (s *AuthService) GithubCallbackHandler(c *gin.Context) error {
+	provider := c.Param("provider")
+	q := c.Request.URL.Query()
+	q.Add("provider", provider)
+	c.Request.URL.RawQuery = q.Encode()
+
+	user, err := gothic.CompleteUserAuth(c.Writer, c.Request)
+	if err != nil {
+		s.logger.Error("error in oauth callback", "error", err)
+		return err
+	}
+
+	s.logger.Debug("user", "debug", user)
+
+	existingUser, err := s.dbQueries.GetUserByEmail(c, user.Email)
+	var dbUser db.User
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			s.logger.Error("error while fetching the user from db", "error", err)
+			return errors.New("try again later")
+		}
+		dbUser, err = s.dbQueries.CreateUser(c, db.CreateUserParams{
+			Email:             user.Email,
+			ProfileImageUrl:   pgtype.Text{String: user.AvatarURL, Valid: true},
+			GithubUsername:    pgtype.Text{String: user.NickName, Valid: true},
+			GithubAccessToken: pgtype.Text{String: user.AccessToken, Valid: true},
+		})
+		if err != nil {
+			s.logger.Error("error while creating user", "error", err)
+			return errors.New("try again later")
+		}
+	} else {
+		dbUser = existingUser
+	}
+
+	if dbUser.GithubUsername.String == "" || dbUser.GithubAccessToken.String == "" || dbUser.ProfileImageUrl.String == "" {
+		err := s.dbQueries.UpdateUser(c, db.UpdateUserParams{
+			Email:             user.Email,
+			GithubUsername:    pgtype.Text{String: user.NickName, Valid: true},
+			GithubAccessToken: pgtype.Text{String: user.AccessToken, Valid: true},
+			ProfileImageUrl:   pgtype.Text{String: user.AvatarURL, Valid: true},
+		})
+		if err != nil {
+			s.logger.Error("error while updating user", "error", err)
+			return errors.New("try again later")
+		}
+	}
+
+	accessTokenExpiresInHour, _ := strconv.Atoi(s.accessTokenExpiresHours)
+	refreshTokenExpiresInHour, _ := strconv.Atoi(s.refreshTokenExpiresHours)
+
+	refreshToken, err := token.GenerateRandomID(32)
+	if err != nil {
+		s.logger.Error("error while creating refresh token", "error", err)
+		return errors.New("try again later")
+	}
+	refreshTokenHash := token.GenerateHash(refreshToken)
+
+	accessToken, err := s.jwtConfig.GenerateJwt(dbUser.ID.String(), uint(accessTokenExpiresInHour))
+	if err != nil {
+		return err
+	}
+
+	err = s.dbQueries.InsertRefreshToken(c, db.InsertRefreshTokenParams{
+		UserID:    dbUser.ID,
+		HashToken: refreshTokenHash,
+		ExpiresAt: pgtype.Timestamptz{
+			Time:  time.Now().Add(time.Hour * time.Duration(refreshTokenExpiresInHour)),
+			Valid: true,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	c.SetCookie("carbon-access-token", accessToken, accessTokenExpiresInHour*3600, "/", "", false, true)
+	c.SetCookie("carbon-refresh-token", refreshToken, refreshTokenExpiresInHour*3600, "/", "", false, true)
 
 	return nil
 }

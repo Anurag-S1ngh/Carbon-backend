@@ -29,10 +29,12 @@ type RefreshToken struct {
 }
 
 type User struct {
-	ID              pgtype.UUID        `json:"id"`
-	Email           string             `json:"email"`
-	ProfileImageUrl pgtype.Text        `json:"profile_image_url"`
-	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	ID                pgtype.UUID        `json:"id"`
+	Email             string             `json:"email"`
+	GithubUsername    pgtype.Text        `json:"github_username"`
+	GithubAccessToken pgtype.Text        `json:"github_access_token"`
+	ProfileImageUrl   pgtype.Text        `json:"profile_image_url"`
+	DeletedAt         pgtype.Timestamptz `json:"deleted_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
 }

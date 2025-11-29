@@ -14,22 +14,33 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
   email,
-  profile_image_url
-) VALUES ( $1, $2 ) 
-RETURNING id, email, profile_image_url, deleted_at, updated_at, created_at
+  profile_image_url,
+  github_username,
+  github_access_token
+) VALUES ( $1, $2, $3, $4 )
+RETURNING id, email, github_username, github_access_token, profile_image_url, deleted_at, updated_at, created_at
 `
 
 type CreateUserParams struct {
-	Email           string      `json:"email"`
-	ProfileImageUrl pgtype.Text `json:"profile_image_url"`
+	Email             string      `json:"email"`
+	ProfileImageUrl   pgtype.Text `json:"profile_image_url"`
+	GithubUsername    pgtype.Text `json:"github_username"`
+	GithubAccessToken pgtype.Text `json:"github_access_token"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.Email, arg.ProfileImageUrl)
+	row := q.db.QueryRow(ctx, createUser,
+		arg.Email,
+		arg.ProfileImageUrl,
+		arg.GithubUsername,
+		arg.GithubAccessToken,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.GithubUsername,
+		&i.GithubAccessToken,
 		&i.ProfileImageUrl,
 		&i.DeletedAt,
 		&i.UpdatedAt,
@@ -39,7 +50,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, profile_image_url, deleted_at, updated_at, created_at FROM users
+SELECT id, email, github_username, github_access_token, profile_image_url, deleted_at, updated_at, created_at FROM users
   WHERE email = $1 AND deleted_at IS NULL
 `
 
@@ -49,10 +60,40 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.GithubUsername,
+		&i.GithubAccessToken,
 		&i.ProfileImageUrl,
 		&i.DeletedAt,
 		&i.UpdatedAt,
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const updateUser = `-- name: UpdateUser :exec
+UPDATE users
+SET
+  profile_image_url   = COALESCE($2, profile_image_url),
+  github_username     = COALESCE($3, github_username),
+  github_access_token = COALESCE($4, github_access_token),
+  updated_at = NOW()
+WHERE email = $1
+RETURNING id, email, github_username, github_access_token, profile_image_url, deleted_at, updated_at, created_at
+`
+
+type UpdateUserParams struct {
+	Email             string      `json:"email"`
+	ProfileImageUrl   pgtype.Text `json:"profile_image_url"`
+	GithubUsername    pgtype.Text `json:"github_username"`
+	GithubAccessToken pgtype.Text `json:"github_access_token"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
+	_, err := q.db.Exec(ctx, updateUser,
+		arg.Email,
+		arg.ProfileImageUrl,
+		arg.GithubUsername,
+		arg.GithubAccessToken,
+	)
+	return err
 }

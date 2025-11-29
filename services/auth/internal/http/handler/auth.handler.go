@@ -9,11 +9,13 @@ import (
 
 type AuthHandler struct {
 	authService *service.AuthService
+	redirectURL string
 }
 
-func NewAuthHandler(authService *service.AuthService) *AuthHandler {
+func NewAuthHandler(authService *service.AuthService, redirectURL string) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
+		redirectURL: redirectURL,
 	}
 }
 
@@ -70,4 +72,18 @@ func (h *AuthHandler) RefreshAccessToken(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "access token refreshed"})
+}
+
+func (h *AuthHandler) OAuthProvider(c *gin.Context) {
+	h.authService.OAuthProvider(c)
+}
+
+func (h *AuthHandler) CallbackHandler(c *gin.Context) {
+	err := h.authService.GithubCallbackHandler(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "try again later"})
+		return
+	}
+
+	c.Redirect(http.StatusTemporaryRedirect, h.redirectURL)
 }

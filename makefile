@@ -9,3 +9,9 @@ upload:
 
 request:
 	@go run ./services/request/cmd/request/main.go
+
+db:
+	@docker run -e POSTGRES_PASSWORD=password -p 5432:5432 -d -v carbon:/var/lib/postgresql/data postgres
+
+redis:
+	@docker run -p 6379:6379 -d redis:7-alpine

@@ -12,6 +12,8 @@ import (
 	"github.com/Anurag-S1ngh/carbon-backend/services/auth/internal/config"
 	"github.com/Anurag-S1ngh/carbon-backend/services/auth/internal/http"
 	"github.com/Anurag-S1ngh/carbon-backend/services/auth/internal/service"
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/providers/github"
 )
 
 func main() {
@@ -19,8 +21,10 @@ func main() {
 		AddSource: true,
 		Level:     slog.LevelDebug,
 	}))
-
 	cfg := config.Load()
+
+	goth.UseProviders(github.New(cfg.GithubClientID, cfg.GithubClientSecret, cfg.GithubCallbackURL, "user:email"))
+
 	ctx := context.Background()
 
 	dbConn, err := db.NewDatabaseConnection(cfg.DatabaseURL)
@@ -54,7 +58,7 @@ func main() {
 		jwtConfig,
 		logger)
 
-	router := http.NewRouter(authService)
+	router := http.NewRouter(authService, cfg.RedirectURL)
 
 	logger.Info("auth service started on 8000", "info", 8000)
 	err = router.Run(":8000")

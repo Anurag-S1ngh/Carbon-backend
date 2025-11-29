@@ -36,15 +36,12 @@ func RedisClient(redisURL string) (*redis.Client, error) {
 
 func (r *RedisConfig) SetEx(key, value string, expiresInSeconds uint) error {
 	ctx := context.Background()
-	sent, err := r.client.SetEx(ctx, key, value, time.Second*time.Duration(expiresInSeconds)).Result()
+	_, err := r.client.SetEx(ctx, key, value, time.Second*time.Duration(expiresInSeconds)).Result()
 	if err != nil {
 		errMsg := fmt.Sprintf("error while setting value of key:%s to redis", key)
 		r.logger.Error(errMsg, "error", err)
 		return err
 	}
-
-	// FIXME: remove this in production
-	r.logger.Debug("key stored in redis", "debug", sent)
 
 	return nil
 }

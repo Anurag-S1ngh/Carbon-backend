@@ -14,6 +14,10 @@ type Config struct {
 	RefreshTokenExpiryHours string
 	AccessTokenExpiryHours  string
 	JwtSecret               string
+	GithubClientID          string
+	GithubClientSecret      string
+	GithubCallbackURL       string
+	RedirectURL             string
 }
 
 func Load() *Config {
@@ -26,6 +30,10 @@ func Load() *Config {
 	refreshTokenExpiryHours := getEnv("REFRESH_TOKEN_EXPIRY_HOURS", "48")
 	accessTokenExpiryHours := getEnv("ACCESS_TOKEN_EXPIRY_HOURS", "4")
 	jwtSecret := getEnv("JWT_SECRET", "strongPassword")
+	githubClientID := getEnv("GITHUB_CLIENT_ID", "")
+	githubClientSecret := getEnv("GITHUB_CLIENT_SECRET", "")
+	githubCallbackURL := getEnv("GIHTUB_CALLBACK_URL", "")
+	redirectURL := getEnv("REDIRECT_URL", "")
 
 	return &Config{
 		DatabaseURL:             databaseURL,
@@ -35,6 +43,10 @@ func Load() *Config {
 		RefreshTokenExpiryHours: refreshTokenExpiryHours,
 		AccessTokenExpiryHours:  accessTokenExpiryHours,
 		JwtSecret:               jwtSecret,
+		GithubClientID:          githubClientID,
+		GithubClientSecret:      githubClientSecret,
+		GithubCallbackURL:       githubCallbackURL,
+		RedirectURL:             redirectURL,
 	}
 }
 
