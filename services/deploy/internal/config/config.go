@@ -1,16 +1,24 @@
 package config
 
-import "os"
+import (
+	"os"
+
+	"github.com/joho/godotenv"
+)
 
 type Config struct {
 	DatabaseURL string
 	RabbitMQURL string
+	Port        string
 }
 
 func Load() *Config {
+	godotenv.Load()
+
 	return &Config{
-		DatabaseURL: getEnv("DATABASE_URL", ""),
-		RabbitMQURL: getEnv("RABBITMQ_URL", ""),
+		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:password@localhost:5432/postgres"),
+		RabbitMQURL: getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"),
+		Port:        getEnv("DEPLOY_SERVICE_PORT", "8001"),
 	}
 }
 

@@ -16,6 +16,10 @@ func NewDatabaseConnection(dbURL string) (*pgx.Conn, error) {
 		return nil, err
 	}
 
+	if err = conn.Ping(ctx); err != nil {
+		return nil, err
+	}
+
 	return conn, nil
 }
 

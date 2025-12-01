@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -32,11 +33,6 @@ func main() {
 		logger.Error("error while connecting to database", "error", err)
 		return
 	}
-	err = dbConn.Ping(ctx)
-	if err != nil {
-		logger.Error("error while ping database", "error", err)
-		return
-	}
 	defer dbConn.Close(ctx)
 	dbQueries := db.DatabaseQueries(dbConn)
 
@@ -60,8 +56,9 @@ func main() {
 
 	router := http.NewRouter(authService, cfg.RedirectURL)
 
-	logger.Info("auth service started on 8000", "info", 8000)
-	err = router.Run(":8000")
+	port := fmt.Sprintf(":%s", cfg.Port)
+	logger.Info("auth service started", "port", port)
+	err = router.Run(port)
 	if err != nil {
 		logger.Error("error while starting the server", "error", err)
 	}

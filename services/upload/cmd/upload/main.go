@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -24,12 +25,7 @@ func main() {
 
 	dbConn, err := db.NewDatabaseConnection(cfg.DatabaseURL)
 	if err != nil {
-		logger.Error("error while ping database", "error", err)
-		return
-	}
-	err = dbConn.Ping(ctx)
-	if err != nil {
-		logger.Error("error while ping database", "error", err)
+		logger.Error("error while connecting to the database", "error", err)
 		return
 	}
 	defer dbConn.Close(ctx)
@@ -48,8 +44,10 @@ func main() {
 
 	router := http.NewRouter(gitService, uploadServcie, authMiddlewareConfig)
 
-	err = router.Run(":8003")
+	port := fmt.Sprintf(":%s", cfg.Port)
+	logger.Info("upload service started", "port", port)
+	err = router.Run(port)
 	if err != nil {
-		logger.Error("error while runnin the server", "error", err)
+		logger.Error("error while starting the server", "error", err)
 	}
 }

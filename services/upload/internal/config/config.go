@@ -10,19 +10,17 @@ type Config struct {
 	JwtSecret   string
 	DatabaseURL string
 	RabbitMQURL string
+	Port        string
 }
 
 func Load() *Config {
 	godotenv.Load()
 
-	jwtSecret := getEnv("JWT_SECRET", "StrongPassword12481jf")
-	databaseURL := getEnv("DATABASE_URL", "postgres://postgres:password@localhost:5432/postgres")
-	rabbitMQURL := getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
-
 	return &Config{
-		JwtSecret:   jwtSecret,
-		DatabaseURL: databaseURL,
-		RabbitMQURL: rabbitMQURL,
+		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:password@localhost:5432/postgres"),
+		RabbitMQURL: getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"),
+		JwtSecret:   getEnv("JWT_SECRET", "StrongPassword12481jf"),
+		Port:        getEnv("UPLOAD_SERVICE_PORT", "8003"),
 	}
 }
 
