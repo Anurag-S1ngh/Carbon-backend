@@ -22,7 +22,7 @@ func (e *EmailConfig) SendEmail(to, body string) error {
 	client := resend.NewClient(e.apiKey)
 
 	params := &resend.SendEmailRequest{
-		From:    "Acme <onboarding@resend.dev>",
+		From:    "Anurag Singh <send@anuragcode.me>",
 		Subject: "From Carbon",
 		To:      []string{to},
 		Html:    body,

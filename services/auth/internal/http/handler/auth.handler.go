@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/Anurag-S1ngh/carbon-backend/services/auth/internal/service"
 	"github.com/gin-gonic/gin"
@@ -61,6 +62,12 @@ func (h *AuthHandler) VerifyOTP(c *gin.Context) {
 func (h *AuthHandler) RefreshAccessToken(c *gin.Context) {
 	refreshToken, err := c.Cookie("carbon-refresh-token")
 	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "token not found"})
+		return
+	}
+
+	refreshToken = strings.TrimSpace(refreshToken)
+	if refreshToken == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "token not found"})
 		return
 	}

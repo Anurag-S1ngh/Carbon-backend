@@ -104,8 +104,6 @@ func (s *AuthService) VerifyOTP(c *gin.Context, userEmail, userOTP string) error
 		user = existingUser
 	}
 
-	s.logger.Debug("existing user", "debug", existingUser)
-
 	refreshToken, err := token.GenerateRandomID(32)
 	if err != nil {
 		s.logger.Error("error while creating refresh token", "error", err)
@@ -183,8 +181,6 @@ func (s *AuthService) GithubCallbackHandler(c *gin.Context) error {
 		s.logger.Error("error in oauth callback", "error", err)
 		return err
 	}
-
-	s.logger.Debug("user", "debug", user)
 
 	existingUser, err := s.dbQueries.GetUserByEmail(c, user.Email)
 	var dbUser db.User

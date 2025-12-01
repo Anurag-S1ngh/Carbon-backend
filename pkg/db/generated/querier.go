@@ -16,6 +16,7 @@ type Querier interface {
 	GetRefreshTokenByToken(ctx context.Context, hashToken string) (RefreshToken, error)
 	GetRefreshTokensByUserID(ctx context.Context, userID pgtype.UUID) ([]RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 }

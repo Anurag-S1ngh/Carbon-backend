@@ -70,9 +70,31 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, email, github_username, github_access_token, profile_image_url, deleted_at, updated_at, created_at FROM users
+  WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.GithubUsername,
+		&i.GithubAccessToken,
+		&i.ProfileImageUrl,
+		&i.DeletedAt,
+		&i.UpdatedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const updateUser = `-- name: UpdateUser :exec
 UPDATE users
 SET
+  email               = COALESCE($1, email),
   profile_image_url   = COALESCE($2, profile_image_url),
   github_username     = COALESCE($3, github_username),
   github_access_token = COALESCE($4, github_access_token),
